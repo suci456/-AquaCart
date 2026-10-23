@@ -48,6 +48,9 @@ class UserAddress {
   final String state;
   final String pincode;
   final bool isDefault;
+  final double? latitude;
+  final double? longitude;
+  final String? landmark;
 
   UserAddress({
     required this.id,
@@ -57,6 +60,9 @@ class UserAddress {
     required this.state,
     required this.pincode,
     this.isDefault = false,
+    this.latitude,
+    this.longitude,
+    this.landmark,
   });
 
   factory UserAddress.fromMap(Map<String, dynamic> map) {
@@ -68,6 +74,9 @@ class UserAddress {
       state: map['state'] ?? '',
       pincode: map['pincode'] ?? '',
       isDefault: map['isDefault'] ?? false,
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
+      landmark: map['landmark'],
     );
   }
 
@@ -80,10 +89,15 @@ class UserAddress {
       'state': state,
       'pincode': pincode,
       'isDefault': isDefault,
+      'latitude': latitude,
+      'longitude': longitude,
+      'landmark': landmark,
     };
   }
 
-  String get fullAddress => '$street, $city, $state - $pincode';
+  String get fullAddress => landmark != null && landmark!.isNotEmpty
+      ? '$street, Near $landmark, $city, $state - $pincode'
+      : '$street, $city, $state - $pincode';
 }
 
 class UserModel {

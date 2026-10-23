@@ -4,11 +4,14 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/user_model.dart';
+import '../../models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/service_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../services/mock_data_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/service_card.dart';
+import '../../widgets/maps_address_picker_sheet.dart';
 
 class ServiceBookingScreen extends StatefulWidget {
   const ServiceBookingScreen({super.key});
@@ -27,6 +30,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedSlot = 'Morning (9AM-1PM)';
   bool _isSubmitting = false;
+  late UserAddress _serviceAddress;
 
   final List<String> _slots = [
     'Morning (9AM-1PM)',
@@ -38,6 +42,10 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    _serviceAddress = auth.user.addresses.isNotEmpty
+        ? auth.user.addresses.first
+        : MockDataService.defaultAddress;
   }
 
   @override
@@ -48,33 +56,43 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
     super.dispose();
   }
 
+  void _pickAddressOnMap() async {
+    final updated = await MapsAddressPickerSheet.show(
+      context,
+      initialAddress: _serviceAddress,
+    );
+    if (updated != null) {
+      setState(() => _serviceAddress = updated);
+    }
+  }
+
   void _bookService() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final serviceProv = Provider.of<ServiceProvider>(context, listen: false);
+    final notifProv = Provider.of<NotificationProvider>(context, listen: false);
 
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(milliseconds: 700));
 
-    final address = auth.user.addresses.isNotEmpty
-        ? auth.user.addresses.first
-        : MockDataService.defaultAddress;
-
-    await serviceProv.bookNewService(
+    final newRequest = await serviceProv.bookNewService(
       user: auth.user,
       serviceType: _selectedType,
       purifierBrandModel: _modelController.text.trim(),
       issueDescription: _issueController.text.trim(),
       preferredDate: _selectedDate,
       preferredSlot: _selectedSlot,
-      address: address,
+      address: _serviceAddress,
     );
+
+    // Trigger instant FCM notification
+    notifProv.notifyServiceBooked(newRequest);
 
     setState(() => _isSubmitting = false);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Service request booked! A technician will be assigned shortly.'),
+      SnackBar(
+        content: Text('Service request ${newRequest.requestNumber} booked successfully!'),
         backgroundColor: AppColors.success,
       ),
     );
@@ -100,14 +118,14 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
           indicatorColor: AppColors.primary,
           tabs: [
             const Tab(text: 'Book New Service'),
-            Tab(text: 'Service Requests (${myRequests.length})'),
+            Tab(text: 'My Requests (${myRequests.length})'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Book New Service Form
+          // ── TAB 1: BOOK NEW SERVICE FORM ──────────────────────────────────
           SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -127,17 +145,79 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Doorstep service by verified & background-checked Califnco technicians with genuine spare parts.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                          'Certified doorstep service by background-verified Califnco technicians with genuine OEM filters & 100% genuine parts warranty.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.3),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text('Select Service Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 18),
+
+                // ── Service Address with Map Pin Integration ─────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Service Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    TextButton.icon(
+                      onPressed: _pickAddressOnMap,
+                      icon: const Icon(Icons.map_outlined, size: 16),
+                      label: const Text('Pin on Map', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.place, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _serviceAddress.label,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _serviceAddress.fullAddress,
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_serviceAddress.latitude != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                '📍 GPS Coordinates: ${_serviceAddress.latitude!.toStringAsFixed(4)}° N, ${_serviceAddress.longitude!.toStringAsFixed(4)}° E',
+                                style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // ── Service Type Selection ───────────────────────────────────
+                const Text('Select Service Requirement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 10),
-                // Service type cards
                 ...ServiceType.values.map((type) {
                   final isSelected = _selectedType == type;
                   return GestureDetector(
@@ -189,17 +269,21 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                   );
                 }),
                 const SizedBox(height: 16),
+
+                // Purifier Brand / Model
                 const Text('Purifier Brand / Model', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextField(
                   controller: _modelController,
                   decoration: const InputDecoration(
-                    hintText: 'e.g. AquaPure Alkaline RO, Kent Grand Plus, etc.',
+                    hintText: 'e.g. AquaPure Alkaline RO 12L, Kent Grand Plus, etc.',
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Issue Details / Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
+
+                // Issue Details
+                const Text('Issue Details / Symptoms', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 6),
                 TextField(
                   controller: _issueController,
                   maxLines: 2,
@@ -208,8 +292,10 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Date Picker
                 const Text('Preferred Service Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 InkWell(
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -240,6 +326,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Time Slot
                 const Text('Preferred Time Slot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 8),
                 Row(
@@ -266,6 +354,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                   }).toList(),
                 ),
                 const SizedBox(height: 28),
+
                 AppButton(
                   text: 'Confirm Service Booking',
                   isLoading: _isSubmitting,
@@ -276,7 +365,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
               ],
             ),
           ),
-          // Tab 2: Service Requests History
+
+          // ── TAB 2: SERVICE REQUESTS HISTORY ───────────────────────────────
           myRequests.isEmpty
               ? Center(
                   child: Column(
@@ -285,6 +375,14 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                       Icon(Icons.handyman_outlined, size: 64, color: AppColors.textMuted.withOpacity(0.5)),
                       const SizedBox(height: 14),
                       const Text('No service requests yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      const Text('Book your purifier installation or filter replacement', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _tabController.animateTo(0),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                        child: const Text('Book Service Now', style: TextStyle(color: Colors.white)),
+                      ),
                     ],
                   ),
                 )
@@ -292,7 +390,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
                   padding: const EdgeInsets.all(16),
                   itemCount: myRequests.length,
                   itemBuilder: (ctx, index) {
-                    return ServiceCard(request: myRequests[index]);
+                    final req = myRequests[index];
+                    return ServiceCard(request: req);
                   },
                 ),
         ],

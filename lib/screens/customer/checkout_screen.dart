@@ -10,6 +10,8 @@ import '../../providers/product_provider.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/razorpay_service.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/maps_address_picker_sheet.dart';
+import '../../providers/notification_provider.dart';
 import 'order_success_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -76,6 +78,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               productProv.decrementStock(item.product.id, item.quantity);
             }
 
+            // Dispatch in-app / FCM notification
+            if (mounted) {
+              Provider.of<NotificationProvider>(context, listen: false)
+                  .notifyOrderPlaced(placedOrder);
+            }
+
             cartProv.clearCart();
             setState(() => _isProcessing = false);
 
@@ -121,6 +129,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         // Decrement stock
         for (final item in cartProv.itemList) {
           productProv.decrementStock(item.product.id, item.quantity);
+        }
+
+        // Dispatch in-app / FCM notification
+        if (mounted) {
+          Provider.of<NotificationProvider>(context, listen: false)
+              .notifyOrderPlaced(placedOrder);
         }
 
         cartProv.clearCart();
@@ -185,9 +199,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ],
                       ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('Change', style: TextStyle(fontSize: 12)),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final updated = await MapsAddressPickerSheet.show(
+                            context,
+                            initialAddress: _selectedAddress,
+                          );
+                          if (updated != null) {
+                            setState(() => _selectedAddress = updated);
+                          }
+                        },
+                        icon: const Icon(Icons.edit_location_alt, size: 14),
+                        label: const Text('Change / Map Pin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

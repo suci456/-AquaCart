@@ -107,4 +107,30 @@ class ServiceProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Cancel service booking
+  void cancelRequest(String requestId) {
+    final index = _requests.indexWhere((r) => r.id == requestId);
+    if (index != -1) {
+      final current = _requests[index];
+      _requests[index] = ServiceRequestModel(
+        id: current.id,
+        requestNumber: current.requestNumber,
+        userId: current.userId,
+        customerName: current.customerName,
+        customerPhone: current.customerPhone,
+        serviceAddress: current.serviceAddress,
+        serviceType: current.serviceType,
+        purifierBrandModel: current.purifierBrandModel,
+        issueDescription: current.issueDescription,
+        preferredDate: current.preferredDate,
+        preferredSlot: current.preferredSlot,
+        status: ServiceStatus.cancelled,
+        assignedTechnician: current.assignedTechnician,
+        technicianNotes: current.technicianNotes,
+        createdAt: current.createdAt,
+      );
+      notifyListeners();
+    }
+  }
 }
