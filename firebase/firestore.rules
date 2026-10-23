@@ -32,8 +32,15 @@ service cloud.firestore {
     // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isAdmin();
+      // On creation: NEVER allow self-assigned Admin registration. Role must be 'customer' or 'dealer'.
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+                    request.resource.data.role in ['customer', 'dealer'] &&
+                    request.resource.data.role != 'admin';
+      // On update: Admins can change roles; users can update profile info but CANNOT change their own role.
+      allow update: if isAdmin() || (
+        isOwner(userId) && 
+        request.resource.data.role == resource.data.role
+      );
       allow delete: if isAdmin();
     }
 

@@ -23,9 +23,11 @@ class _DealerRegisterScreenState extends State<DealerRegisterScreen> {
   final _passwordController = TextEditingController(text: 'dealerPass123');
 
   void _handleSubmit() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.clearError();
+
     if (!_formKey.currentState!.validate()) return;
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
     final success = await auth.registerDealer(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
@@ -40,12 +42,20 @@ class _DealerRegisterScreenState extends State<DealerRegisterScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Dealer account approved! Welcome to AquaCart Wholesale.'),
+          content: Text('Dealer application submitted! Welcome to AquaCart Wholesale.'),
           backgroundColor: AppColors.success,
         ),
       );
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const DealerDashboardScreen()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Dealer registration failed.'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }

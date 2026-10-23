@@ -5,6 +5,7 @@ import '../core/constants/app_constants.dart';
 import '../providers/auth_provider.dart';
 import 'customer/customer_home_screen.dart';
 import 'dealer/dealer_dashboard_screen.dart';
+import 'auth/role_gate.dart';
 import 'auth/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -31,20 +32,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
     _animController.forward();
 
-    // Navigate to respective dashboard after splash animation
-    Future.delayed(const Duration(milliseconds: 1800), () {
-      if (!mounted) return;
+    // Initialize auth session and navigate to respective role dashboard
+    Future.microtask(() async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.isAuthenticated) {
-        if (auth.isDealer) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const DealerDashboardScreen()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
-          );
-        }
+      await auth.initializeAuth();
+
+      await Future.delayed(const Duration(milliseconds: 1400));
+      if (!mounted) return;
+
+      if (auth.isAuthenticated && auth.user != null) {
+        RoleGate.navigateForRole(context, auth.user!.role);
       } else {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),

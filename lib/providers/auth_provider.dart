@@ -5,19 +5,44 @@ import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
+  bool _isInitialized = false;
   bool _isLoading = false;
   String? _errorMessage;
 
-  UserModel get user => _authService.currentUser;
+  UserModel? get user => _authService.currentUser;
   bool get isAuthenticated => _authService.isAuthenticated;
+  bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  UserRole get currentRole => user.role;
-  bool get isCustomer => user.isCustomer;
-  bool get isDealer => user.isDealer;
-  bool get isAdmin => user.isAdmin;
+  UserRole? get currentRole => user?.role;
+  bool get isCustomer => user?.isCustomer ?? false;
+  bool get isDealer => user?.isDealer ?? false;
+  bool get isAdmin => user?.isAdmin ?? false;
 
+  // Initialize session from SharedPreferences on app startup
+  Future<void> initializeAuth() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _authService.restoreSession();
+    } catch (e) {
+      debugPrint('Error restoring auth session: $e');
+    } finally {
+      _isLoading = false;
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
+
+  // Clear any active error message
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Sign In with email & password
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -28,14 +53,20 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
+    } on AuthException catch (e) {
+      _isLoading = false;
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e.toString();
+      _errorMessage = 'An unexpected error occurred. Please try again.';
       notifyListeners();
       return false;
     }
   }
 
+  // Register Customer (Role is strictly locked to Customer)
   Future<bool> registerCustomer({
     required String name,
     required String email,
@@ -56,14 +87,20 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
+    } on AuthException catch (e) {
+      _isLoading = false;
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e.toString();
+      _errorMessage = 'Failed to create customer account: $e';
       notifyListeners();
       return false;
     }
   }
 
+  // Register Dealer with business & GST verification (Role is strictly locked to Dealer)
   Future<bool> registerDealer({
     required String name,
     required String email,
@@ -90,9 +127,14 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
+    } on AuthException catch (e) {
+      _isLoading = false;
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e.toString();
+      _errorMessage = 'Failed to submit dealer registration: $e';
       notifyListeners();
       return false;
     }
@@ -104,8 +146,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Sign out and wipe session
   Future<void> signOut() async {
-    await _authService.signOut();
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      await _authService.signOut();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
