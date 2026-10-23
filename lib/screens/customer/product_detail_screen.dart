@@ -248,6 +248,53 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     'Inclusive of all taxes & free standard delivery',
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
+                  const SizedBox(height: 10),
+                  // Live Stock Availability Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: product.stockQuantity > 5
+                          ? Colors.green.shade50
+                          : product.stockQuantity > 0
+                              ? Colors.amber.shade50
+                              : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: product.stockQuantity > 5
+                            ? Colors.green.shade300
+                            : product.stockQuantity > 0
+                                ? Colors.amber.shade300
+                                : Colors.red.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          product.stockQuantity > 0 ? Icons.check_circle_outline : Icons.cancel_outlined,
+                          size: 14,
+                          color: product.stockQuantity > 5
+                              ? Colors.green.shade800
+                              : product.stockQuantity > 0
+                                  ? Colors.amber.shade900
+                                  : Colors.red.shade800,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          product.stockStatus,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: product.stockQuantity > 5
+                                ? Colors.green.shade800
+                                : product.stockQuantity > 0
+                                    ? Colors.amber.shade900
+                                    : Colors.red.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const Divider(height: 32),
                   // Product Description
                   const Text(
@@ -336,27 +383,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.add, size: 16),
-                      onPressed: () => setState(() => _quantity++),
+                      onPressed: _quantity < product.stockQuantity
+                          ? () => setState(() => _quantity++)
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Cannot add more. Available stock is ${product.stockQuantity} units.'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 14),
-              // Add to cart button
+              // Add to cart button with out-of-stock guard
               Expanded(
                 child: AppButton(
-                  text: 'Add to Cart (${CurrencyFormatter.format(subtotal)})',
+                  text: !product.isInStock
+                      ? 'Out of Stock'
+                      : 'Add to Cart (${CurrencyFormatter.format(subtotal)})',
                   gradient: isDealer ? AppColors.dealerGradient : AppColors.aquaGradient,
-                  onPressed: () {
-                    cartProv.addToCart(
-                      product,
-                      isWholesale: isDealer,
-                      customQuantity: _quantity,
-                    );
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CartScreen()),
-                    );
-                  },
+                  onPressed: !product.isInStock
+                      ? null
+                      : () {
+                          final added = cartProv.addToCart(
+                            product,
+                            isWholesale: isDealer,
+                            customQuantity: _quantity,
+                          );
+                          if (!added) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Capped at maximum available stock (${product.stockQuantity} units).'),
+                              ),
+                            );
+                          }
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const CartScreen()),
+                          );
+                        },
                 ),
               ),
             ],

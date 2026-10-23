@@ -205,40 +205,62 @@ class ProductCard extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 10),
-                    // Add to cart action button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 36,
-                      child: ElevatedButton(
-                        onPressed: onAddToCart,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDealer
-                              ? AppColors.dealerBadge
-                              : AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    // Stock availability & Add to cart action button
+                    if (!product.isInStock) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Out of Stock',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.add_shopping_cart, size: 15),
-                            const SizedBox(width: 6),
-                            Text(
-                              isDealer
-                                  ? 'Add Bulk (${product.wholesaleMoq} min)'
-                                  : 'Add to Cart',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: onAddToCart,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDealer
+                                ? AppColors.dealerBadge
+                                : AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.add_shopping_cart, size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                isDealer
+                                    ? 'Add Bulk (${product.wholesaleMoq} min)'
+                                    : 'Add to Cart',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

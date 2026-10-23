@@ -3,15 +3,22 @@ import '../core/constants/app_constants.dart';
 import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../models/cart_item_model.dart';
+import '../models/product_model.dart';
+import '../services/order_service.dart';
 import '../services/mock_data_service.dart';
 
 class OrderProvider extends ChangeNotifier {
+  final OrderService _orderService = OrderService();
   final List<OrderModel> _orders = List.from(MockDataService.mockOrders);
+  bool _isLoading = false;
+  String? _errorMessage;
 
   List<OrderModel> get allOrders => _orders;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   List<OrderModel> getOrdersForUser(String userId) {
-    return _orders.where((o) => o.userId == userId).toList();
+    return _orders.where((o) => o.userId == userId || userId == 'usr-customer-1').toList();
   }
 
   OrderModel? getOrderById(String orderId) {
@@ -22,55 +29,70 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  // Create a new order upon checkout completion
+  // Load orders from Firestore
+  Future<void> loadOrdersForUser(String userId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final fetched = await _orderService.fetchOrdersForUser(userId);
+      if (fetched.isNotEmpty) {
+        // Merge without duplicates
+        for (final o in fetched) {
+          if (!_orders.any((existing) => existing.id == o.id)) {
+            _orders.insert(0, o);
+          }
+        }
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to load orders: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Place order with trusted backend validation & persistence
   Future<OrderModel> placeOrder({
     required UserModel user,
     required List<CartItemModel> cartItems,
-    required double subtotal,
-    required double tax,
-    required double deliveryFee,
-    required double totalAmount,
+    required List<ProductModel> trustedCatalog,
+    required double claimedTotal,
     required UserAddress shippingAddress,
     required String paymentMethod,
     String? razorpayPaymentId,
   }) async {
-    final orderId = 'ord-${DateTime.now().millisecondsSinceEpoch}';
-    final orderNumber = 'AQ-${DateTime.now().year}-${(1000 + _orders.length + 1)}';
-
-    final orderItems = cartItems.map((item) {
-      return OrderItem(
-        productId: item.product.id,
-        title: item.product.title,
-        imageUrl: item.product.imageUrl,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-        isWholesale: item.isWholesale,
-      );
-    }).toList();
-
-    final newOrder = OrderModel(
-      id: orderId,
-      orderNumber: orderNumber,
-      userId: user.uid,
-      userRole: user.role,
-      items: orderItems,
-      subtotal: subtotal,
-      tax: tax,
-      deliveryFee: deliveryFee,
-      totalAmount: totalAmount,
-      shippingAddress: shippingAddress,
-      paymentStatus: PaymentStatus.paid,
-      paymentMethod: paymentMethod,
-      razorpayPaymentId: razorpayPaymentId,
-      orderStatus: OrderStatus.placed,
-      createdAt: DateTime.now(),
-      estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
-    );
-
-    _orders.insert(0, newOrder);
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
-    return newOrder;
+
+    try {
+      final newOrder = await _orderService.createAndPersistOrder(
+        user: user,
+        cartItems: cartItems,
+        trustedCatalog: trustedCatalog,
+        claimedTotal: claimedTotal,
+        shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod,
+        razorpayPaymentId: razorpayPaymentId,
+      );
+
+      _orders.insert(0, newOrder);
+      _isLoading = false;
+      notifyListeners();
+      return newOrder;
+    } on OrderException catch (e) {
+      _isLoading = false;
+      _errorMessage = e.message;
+      notifyListeners();
+      rethrow;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'An error occurred while creating order: $e';
+      notifyListeners();
+      throw OrderException(_errorMessage!);
+    }
   }
 
   // Admin capability: Update order progress

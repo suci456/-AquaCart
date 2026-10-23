@@ -6,44 +6,125 @@ import '../../core/utils/currency_formatter.dart';
 import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
+import 'customer_home_screen.dart';
 
-class OrderTrackingScreen extends StatelessWidget {
+class OrderTrackingScreen extends StatefulWidget {
   final String? selectedOrderId;
 
   const OrderTrackingScreen({super.key, this.selectedOrderId});
 
   @override
+  State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+}
+
+class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final orderProv = Provider.of<OrderProvider>(context, listen: false);
+      if (auth.user != null) {
+        orderProv.loadOrdersForUser(auth.user!.uid);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final orderProv = Provider.of<OrderProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
-    final userOrders = orderProv.getOrdersForUser(auth.user.uid);
+    final uid = auth.user?.uid ?? 'usr-customer-1';
+    final userOrders = orderProv.getOrdersForUser(uid);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Orders & Tracking'),
       ),
-      body: userOrders.isEmpty
-          ? Center(
+      body: orderProv.isLoading
+          ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: 64, color: AppColors.textMuted.withOpacity(0.5)),
-                  const SizedBox(height: 14),
-                  const Text('No orders found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  const Text('Your past purifier purchases will appear here.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  CircularProgressIndicator(),
+                  SizedBox(height: 12),
+                  Text('Loading your order history...'),
                 ],
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: userOrders.length,
-              itemBuilder: (ctx, index) {
-                final order = userOrders[index];
-                return _buildOrderCard(context, order);
-              },
-            ),
+          : orderProv.errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        const SizedBox(height: 12),
+                        Text(
+                          orderProv.errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => orderProv.loadOrdersForUser(uid),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry Loading'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : userOrders.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 72,
+                              color: AppColors.textMuted.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No Orders Found',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'You have not placed any water purifier or spare parts orders yet.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
+                                  (route) => false,
+                                );
+                              },
+                              child: const Text('Explore Water Purifiers'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => orderProv.loadOrdersForUser(uid),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: userOrders.length,
+                        itemBuilder: (ctx, index) {
+                          final order = userOrders[index];
+                          return _buildOrderCard(context, order);
+                        },
+                      ),
+                    ),
     );
   }
 
@@ -139,11 +220,24 @@ class OrderTrackingScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _buildTimeline(order.orderStatus),
             const Divider(height: 20),
-            // Total & Delivery Info
+            // Payment & Delivery details
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total Amount Paid:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payment: ${order.paymentMethod.toUpperCase()}',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    if (order.razorpayPaymentId != null)
+                      Text(
+                        'Ref: ${order.razorpayPaymentId}',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                      ),
+                  ],
+                ),
                 Text(
                   CurrencyFormatter.format(order.totalAmount),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary),

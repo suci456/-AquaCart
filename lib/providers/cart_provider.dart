@@ -41,31 +41,54 @@ class CartProvider extends ChangeNotifier {
     return _items.values.where((item) => !item.meetsWholesaleMoq).toList();
   }
 
-  void addToCart(ProductModel product, {bool isWholesale = false, int? customQuantity}) {
+  // Add to cart with stock validation
+  // Returns true if added fully, false if capped by stock or out of stock
+  bool addToCart(ProductModel product, {bool isWholesale = false, int? customQuantity}) {
+    if (!product.isInStock) return false;
+
     final int defaultQty = isWholesale ? product.wholesaleMoq : 1;
-    final int qtyToAdd = customQuantity ?? defaultQty;
+    final int requestedQty = customQuantity ?? defaultQty;
+
+    final int existingQty = _items[product.id]?.quantity ?? 0;
+    final int newQty = existingQty + requestedQty;
+
+    // Enforce stock ceiling
+    final int finalQty = newQty > product.stockQuantity ? product.stockQuantity : newQty;
 
     if (_items.containsKey(product.id)) {
-      _items[product.id]!.quantity += qtyToAdd;
+      _items[product.id]!.quantity = finalQty;
     } else {
       _items[product.id] = CartItemModel(
         product: product,
-        quantity: qtyToAdd,
+        quantity: finalQty,
         isWholesale: isWholesale,
       );
     }
     notifyListeners();
+    return newQty <= product.stockQuantity;
   }
 
-  void updateQuantity(String productId, int newQuantity) {
-    if (!_items.containsKey(productId)) return;
+  // Update item quantity with stock boundary check
+  bool updateQuantity(String productId, int newQuantity) {
+    if (!_items.containsKey(productId)) return false;
 
     if (newQuantity <= 0) {
       _items.remove(productId);
-    } else {
-      _items[productId]!.quantity = newQuantity;
+      notifyListeners();
+      return true;
     }
+
+    final item = _items[productId]!;
+    if (newQuantity > item.product.stockQuantity) {
+      // Cap at available stock
+      item.quantity = item.product.stockQuantity;
+      notifyListeners();
+      return false; // Indicates capped
+    }
+
+    item.quantity = newQuantity;
     notifyListeners();
+    return true;
   }
 
   void removeItem(String productId) {

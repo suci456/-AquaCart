@@ -413,65 +413,121 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          // Product Grid Header
+          // Product Grid Header with Sort Dropdown
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${AppConstants.categoryLabels[productProv.selectedCategory]} (${productProv.filteredProducts.length})',
+                '${AppConstants.categoryLabels[productProv.selectedCategory]} (${productProv.getFilteredProductsForRole(auth.currentRole).length})',
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                 ),
               ),
+              DropdownButton<ProductSortOption>(
+                value: productProv.sortOption,
+                underline: const SizedBox(),
+                icon: const Icon(Icons.sort, size: 18, color: AppColors.primary),
+                style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                onChanged: (opt) {
+                  if (opt != null) productProv.setSortOption(opt);
+                },
+                items: const [
+                  DropdownMenuItem(value: ProductSortOption.featured, child: Text('Featured')),
+                  DropdownMenuItem(value: ProductSortOption.priceLowToHigh, child: Text('Price: Low to High')),
+                  DropdownMenuItem(value: ProductSortOption.priceHighToLow, child: Text('Price: High to Low')),
+                  DropdownMenuItem(value: ProductSortOption.rating, child: Text('Top Rated')),
+                  DropdownMenuItem(value: ProductSortOption.stockOnly, child: Text('In Stock Only')),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          // Product Cards Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: productProv.filteredProducts.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.58,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemBuilder: (ctx, index) {
-              final product = productProv.filteredProducts[index];
-              return ProductCard(
-                product: product,
-                userRole: auth.currentRole,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(productId: product.id),
+          const SizedBox(height: 10),
+          // Product Grid or Empty State
+          if (productProv.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (productProv.getFilteredProductsForRole(auth.currentRole).isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off_outlined, size: 56, color: AppColors.textMuted.withOpacity(0.6)),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'No Water Purifiers Found',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                  );
-                },
-                onAddToCart: () {
-                  cartProv.addToCart(product, isWholesale: auth.isDealer);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Added ${product.title} to cart'),
-                      duration: const Duration(seconds: 2),
-                      action: SnackBarAction(
-                        label: 'View Cart',
-                        textColor: Colors.amberAccent,
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const CartScreen()),
-                          );
-                        },
+                    const SizedBox(height: 6),
+                    const Text(
+                      'No products matched your search or category filters.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => productProv.clearFilters(),
+                      icon: const Icon(Icons.clear_all, size: 16),
+                      label: const Text('Clear All Filters', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: productProv.getFilteredProductsForRole(auth.currentRole).length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.56,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemBuilder: (ctx, index) {
+                final product = productProv.getFilteredProductsForRole(auth.currentRole)[index];
+                return ProductCard(
+                  product: product,
+                  userRole: auth.currentRole,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProductDetailScreen(productId: product.id),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                    );
+                  },
+                  onAddToCart: () {
+                    final added = cartProv.addToCart(product, isWholesale: auth.isDealer);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          added
+                              ? 'Added ${product.title} to cart'
+                              : 'Capped at available stock for ${product.title}',
+                        ),
+                        duration: const Duration(seconds: 2),
+                        action: SnackBarAction(
+                          label: 'View Cart',
+                          textColor: Colors.amberAccent,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const CartScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           const SizedBox(height: 24),
         ],
       ),

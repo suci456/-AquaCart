@@ -91,6 +91,23 @@ class ProductModel {
     return retailPrice;
   }
 
+  // Restrict wholesale price: Only Dealers & Admins can access wholesale prices
+  double? getWholesalePriceForRole(UserRole role) {
+    if (role == UserRole.dealer || role == UserRole.admin) {
+      return wholesalePrice;
+    }
+    return null; // Masked for standard customers
+  }
+
+  // Stock availability helper
+  bool get isInStock => stockQuantity > 0;
+
+  String get stockStatus {
+    if (stockQuantity <= 0) return 'Out of Stock';
+    if (stockQuantity <= 5) return 'Only $stockQuantity left in stock!';
+    return 'In Stock ($stockQuantity units available)';
+  }
+
   factory ProductModel.fromMap(Map<String, dynamic> map) {
     return ProductModel(
       id: map['id'] ?? '',

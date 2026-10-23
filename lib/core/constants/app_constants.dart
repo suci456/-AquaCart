@@ -9,6 +9,7 @@ enum ProductCategory {
   roPurifiers,
   commercialPurifiers,
   spareFilters,
+  accessories,
   amcPlans,
 }
 
@@ -60,6 +61,7 @@ class AppConstants {
     ProductCategory.roPurifiers: 'RO Purifiers',
     ProductCategory.commercialPurifiers: 'Commercial Plants',
     ProductCategory.spareFilters: 'Filters & Spares',
+    ProductCategory.accessories: 'Accessories & Hardware',
     ProductCategory.amcPlans: 'AMC Plans',
   };
 

@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/razorpay_service.dart';
 import '../../widgets/app_button.dart';
@@ -37,6 +38,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cartProv = Provider.of<CartProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final orderProv = Provider.of<OrderProvider>(context, listen: false);
+    final productProv = Provider.of<ProductProvider>(context, listen: false);
+
+    if (cartProv.itemList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cart is empty. Please add items before checkout.')),
+      );
+      return;
+    }
 
     if (_selectedPaymentMethod == 'razorpay_test') {
       final orderNumber = 'AQ-${DateTime.now().year}-${1000 + orderProv.allOrders.length + 1}';
@@ -45,27 +54,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context: context,
         amount: cartProv.totalAmount,
         orderNumber: orderNumber,
-        customerEmail: auth.user.email,
-        customerPhone: auth.user.phone,
+        customerEmail: auth.user!.email,
+        customerPhone: auth.user!.phone,
         onSuccess: (paymentId, orderId) async {
-          final placedOrder = await orderProv.placeOrder(
-            user: auth.user,
-            cartItems: cartProv.itemList,
-            subtotal: cartProv.subtotal,
-            tax: cartProv.taxAmount,
-            deliveryFee: cartProv.deliveryFee,
-            totalAmount: cartProv.totalAmount,
-            shippingAddress: _selectedAddress,
-            paymentMethod: 'razorpay_test',
-            razorpayPaymentId: paymentId,
-          );
-          cartProv.clearCart();
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => OrderSuccessScreen(order: placedOrder),
-            ),
-          );
+          setState(() => _isProcessing = true);
+          try {
+            // Validate on trusted backend rules & persist
+            // SECURITY: Never stores card details; only tokenized payment ID is persisted
+            final placedOrder = await orderProv.placeOrder(
+              user: auth.user!,
+              cartItems: cartProv.itemList,
+              trustedCatalog: productProv.allProducts,
+              claimedTotal: cartProv.totalAmount,
+              shippingAddress: _selectedAddress,
+              paymentMethod: 'razorpay_test',
+              razorpayPaymentId: paymentId,
+            );
+
+            // Decrement stock in catalog
+            for (final item in cartProv.itemList) {
+              productProv.decrementStock(item.product.id, item.quantity);
+            }
+
+            cartProv.clearCart();
+            setState(() => _isProcessing = false);
+
+            if (!mounted) return;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => OrderSuccessScreen(order: placedOrder),
+              ),
+            );
+          } catch (e) {
+            setState(() => _isProcessing = false);
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Order processing failed: $e'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
         },
         onFailure: (code, message) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -77,29 +106,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       );
     } else {
-      // COD or Dealer Credit
+      // Cash on Delivery (COD) or Dealer Credit
       setState(() => _isProcessing = true);
-      await Future.delayed(const Duration(milliseconds: 1000));
-      if (!mounted) return;
+      try {
+        final placedOrder = await orderProv.placeOrder(
+          user: auth.user!,
+          cartItems: cartProv.itemList,
+          trustedCatalog: productProv.allProducts,
+          claimedTotal: cartProv.totalAmount,
+          shippingAddress: _selectedAddress,
+          paymentMethod: _selectedPaymentMethod,
+        );
 
-      final placedOrder = await orderProv.placeOrder(
-        user: auth.user,
-        cartItems: cartProv.itemList,
-        subtotal: cartProv.subtotal,
-        tax: cartProv.taxAmount,
-        deliveryFee: cartProv.deliveryFee,
-        totalAmount: cartProv.totalAmount,
-        shippingAddress: _selectedAddress,
-        paymentMethod: _selectedPaymentMethod,
-      );
-      cartProv.clearCart();
-      setState(() => _isProcessing = false);
+        // Decrement stock
+        for (final item in cartProv.itemList) {
+          productProv.decrementStock(item.product.id, item.quantity);
+        }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => OrderSuccessScreen(order: placedOrder),
-        ),
-      );
+        cartProv.clearCart();
+        setState(() => _isProcessing = false);
+
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => OrderSuccessScreen(order: placedOrder),
+          ),
+        );
+      } catch (e) {
+        setState(() => _isProcessing = false);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order creation failed: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 

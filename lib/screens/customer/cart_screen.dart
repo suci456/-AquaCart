@@ -204,10 +204,20 @@ class CartScreen extends StatelessWidget {
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: () => cartProv.updateQuantity(
-                                                item.product.id,
-                                                item.quantity + 1,
-                                              ),
+                                              onTap: () {
+                                                final success = cartProv.updateQuantity(
+                                                  item.product.id,
+                                                  item.quantity + 1,
+                                                );
+                                                if (!success) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Maximum available stock for ${item.product.title} is ${item.product.stockQuantity} units.'),
+                                                      duration: const Duration(seconds: 1),
+                                                    ),
+                                                  );
+                                                }
+                                              },
                                               child: const Padding(
                                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 child: Icon(Icons.add, size: 14),

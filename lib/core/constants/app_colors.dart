@@ -14,6 +14,7 @@ class AppColors {
   static const Color background = Color(0xFFF8FAFC); // Slate 50
   static const Color surface = Colors.white;
   static const Color surfaceElevated = Color(0xFFF1F5F9); // Slate 100
+  static const Color surfaceLight = Color(0xFFE0F2FE); // Sky 100
   static const Color border = Color(0xFFE2E8F0); // Slate 200
 
   // Text Colors

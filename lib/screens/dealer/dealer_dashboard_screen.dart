@@ -14,6 +14,7 @@ import '../customer/cart_screen.dart';
 import '../customer/product_detail_screen.dart';
 import '../customer/order_tracking_screen.dart';
 import '../profile_screen.dart';
+import 'dealer_bulk_order_screen.dart';
 
 class DealerDashboardScreen extends StatelessWidget {
   const DealerDashboardScreen({super.key});
@@ -219,7 +220,66 @@ class DealerDashboardScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // ── Quick Actions ──────────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.dealerBadge,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.playlist_add_check, size: 20),
+                    label: const Text(
+                      'Bulk Order\nQuick Entry',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const DealerBulkOrderScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.dealerBadge,
+                      side: const BorderSide(color: AppColors.dealerBadge),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.receipt_long, size: 20),
+                    label: const Text(
+                      'Order\nHistory',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const OrderTrackingScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
+
             // Wholesale Catalog Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
