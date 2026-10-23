@@ -1,0 +1,239 @@
+{
+  "name": "AquaCart - Daily AI Instagram Marketing Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily-trigger",
+      "name": "Daily 9:00 AM IST Scheduler",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-instagram-publish",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "manual-webhook-trigger",
+      "name": "Manual Test Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [180, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const topics = [\n  {\n    theme: 'TDS Health Awareness',\n    headline: 'Is your drinking water TDS above 300 ppm?',\n    keyFact: 'High dissolved solids can lead to kidney stones and digestive issues. AquaPure Alkaline RO reduces TDS to optimal 80-120 ppm.',\n    cta: 'Check your water TDS for free with AquaCart Service.'\n  },\n  {\n    theme: 'Active Copper & Alkaline Health',\n    headline: 'Why Copper + Alkaline Water is the ultimate immunity booster',\n    keyFact: 'Traditional RO purifiers strip healthy minerals. AquaPure remineralizes pure water with natural Copper, Calcium, and Magnesium ions.',\n    cta: 'Upgrade your home purifier today on the AquaCart app with 35% off.'\n  },\n  {\n    theme: 'Monsoon Filter Care Guide',\n    headline: 'Heavy rains mean muddy tap water: Time to replace your pre-filter!',\n    keyFact: 'A clogged sediment pre-filter can damage your expensive RO membrane within weeks.',\n    cta: 'Book a certified technician in 60 seconds on AquaCart.'\n  },\n  {\n    theme: 'B2B Dealer Wholesale Program',\n    headline: 'Calling Water Purifier Retailers & Distributors',\n    keyFact: 'Earn up to 40% wholesale margin on certified domestic & commercial RO purifiers with 15-day dealer credit.',\n    cta: 'Register as an authorized Califnco dealer in the AquaCart app.'\n  }\n];\n\nconst dayIndex = new Date().getDay() % topics.length;\nconst selectedTopic = topics[dayIndex];\n\nreturn [{\n  json: {\n    ...selectedTopic,\n    timestamp: new Date().toISOString(),\n    brand: 'AquaCart Water Solutions'\n  }\n}];"
+      },
+      "id": "topic-selector",
+      "name": "Select Daily Marketing Theme",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "message": "You are a world-class social media copywriter for AquaCart, a premier water purifier and purification service brand by Califnco. Create high-converting, educational Instagram captions with engaging hooks, emojis, clear health benefits, and 15 targeted hashtags. Always include a clean call-to-action to download the AquaCart app or book service."
+            },
+            {
+              "role": "user",
+              "message": "=Theme: {{ $json.theme }}\nHeadline: {{ $json.headline }}\nKey Fact: {{ $json.keyFact }}\nCTA: {{ $json.cta }}\n\nReturn a JSON object with two fields:\n1. 'caption': The complete Instagram caption with emojis and hashtags.\n2. 'image_prompt': A highly detailed photorealistic prompt for DALL-E 3 depicting modern, clean water purification, crystal clear water splashing in a sleek minimalist home kitchen."
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "id": "openai-copywriter",
+      "name": "AI Content & Caption Generator",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_aquacart_creds",
+          "name": "OpenAI Production Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.message.content.image_prompt }}",
+        "size": "1024x1024",
+        "quality": "standard"
+      },
+      "id": "dalle-image-generator",
+      "name": "Generate Visual Graphic (DALL-E 3)",
+      "type": "@n8n/n8n-nodes-langchain.openAiImage",
+      "typeVersion": 1,
+      "position": [920, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_aquacart_creds",
+          "name": "OpenAI Production Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $env.INSTAGRAM_BUSINESS_ACCOUNT_ID }}/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('AI Content & Caption Generator').item.json.message.content.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.META_PAGE_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "meta-create-container",
+      "name": "Create Instagram Media Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $env.INSTAGRAM_BUSINESS_ACCOUNT_ID }}/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.META_PAGE_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "meta-publish-post",
+      "name": "Publish Post to Instagram Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    status: 'SUCCESS',\n    publishedMediaId: $json.id,\n    publishedAt: new Date().toISOString(),\n    message: 'Daily Instagram marketing post published successfully.'\n  }\n}];"
+      },
+      "id": "audit-logger",
+      "name": "Log Publication Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 400]
+    }
+  ],
+  "connections": {
+    "Daily 9:00 AM IST Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Select Daily Marketing Theme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Webhook": {
+      "main": [
+        [
+          {
+            "node": "Select Daily Marketing Theme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Daily Marketing Theme": {
+      "main": [
+        [
+          {
+            "node": "AI Content & Caption Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content & Caption Generator": {
+      "main": [
+        [
+          {
+            "node": "Generate Visual Graphic (DALL-E 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Visual Graphic (DALL-E 3)": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media Container": {
+      "main": [
+        [
+          {
+            "node": "Publish Post to Instagram Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Post to Instagram Feed": {
+      "main": [
+        [
+          {
+            "node": "Log Publication Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

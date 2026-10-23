@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' || 
+        getUserData().role == 'admin'
+      );
+    }
+
+    function isApprovedDealer() {
+      return isAuthenticated() && (
+        getUserData().role == 'dealer' &&
+        getUserData().dealerProfile.status == 'approved'
+      );
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Products Collection
+    match /products/{productId} {
+      // Anyone can browse products (public read)
+      allow read: if true;
+      // Only Admin can create, modify, or delete products
+      allow write: if isAdmin();
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      // User can read their own orders; Admin can read all orders
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Authenticated users can create orders
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Admin can update order fulfillment status, customer can cancel if still pending
+      allow update: if isAdmin() || (isOwner(resource.data.userId) && resource.data.orderStatus == 'placed');
+      allow delete: if isAdmin();
+    }
+
+    // Service Requests Collection
+    match /service_requests/{requestId} {
+      // User can read their own requests; Admin can read all
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Customers & Dealers can submit requests
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Admin can assign technicians and update service progress
+      allow update: if isAdmin() || isOwner(resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.userId == 'all' || 
+        isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    // Dealer Applications & Profiles
+    match /dealer_applications/{appId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+  }
+}
