@@ -901,8 +901,9 @@ class MockDataService {
     ),
   ];
 
-  // Sample Orders
+  // Sample Orders (Customer retail + Dealer wholesale)
   static final List<OrderModel> mockOrders = [
+    // Customer retail order
     OrderModel(
       id: 'ord-1001',
       orderNumber: 'AQ-2026-9041',
@@ -930,6 +931,80 @@ class MockDataService {
       orderStatus: OrderStatus.dispatched,
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
       estimatedDelivery: DateTime.now().add(const Duration(days: 1)),
+    ),
+
+    // Dealer wholesale bulk order #1
+    OrderModel(
+      id: 'ord-d-2001',
+      orderNumber: 'AQ-2026-D-2001',
+      userId: 'usr-dealer-1',
+      dealerId: 'usr-dealer-1',
+      dealerCompanyName: 'AquaTech Water Solutions Pvt Ltd',
+      wholesaleTier: 'Gold Partner',
+      userRole: UserRole.dealer,
+      items: [
+        OrderItem(
+          productId: 'prod-ro-01',
+          title: 'AquaPure Alkaline RO+UV+UF+Copper 12L',
+          imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=800&q=80',
+          quantity: 5,
+          unitPrice: 9450.0,
+          totalPrice: 47250.0,
+          isWholesale: true,
+        ),
+        OrderItem(
+          productId: 'prod-ro-02',
+          title: 'HydroShield Under-Sink Compact RO System',
+          imageUrl: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=800&q=80',
+          quantity: 4,
+          unitPrice: 12900.0,
+          totalPrice: 51600.0,
+          isWholesale: true,
+        ),
+      ],
+      subtotal: 98850.0,
+      tax: 17793.0,
+      deliveryFee: 0.0,
+      totalAmount: 116643.0,
+      shippingAddress: dealerAddress,
+      paymentStatus: PaymentStatus.paid,
+      paymentMethod: 'dealer_credit',
+      orderStatus: OrderStatus.confirmed,
+      createdAt: DateTime.now().subtract(const Duration(days: 5)),
+      estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
+    ),
+
+    // Dealer wholesale bulk order #2
+    OrderModel(
+      id: 'ord-d-2002',
+      orderNumber: 'AQ-2026-D-2002',
+      userId: 'usr-dealer-1',
+      dealerId: 'usr-dealer-1',
+      dealerCompanyName: 'AquaTech Water Solutions Pvt Ltd',
+      wholesaleTier: 'Gold Partner',
+      userRole: UserRole.dealer,
+      items: [
+        OrderItem(
+          productId: 'prod-filter-01',
+          title: 'Vontron 80 GPD RO Membrane (High Recovery)',
+          imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
+          quantity: 20,
+          unitPrice: 1890.0,
+          totalPrice: 37800.0,
+          isWholesale: true,
+        ),
+      ],
+      subtotal: 37800.0,
+      tax: 6804.0,
+      deliveryFee: 0.0,
+      totalAmount: 44604.0,
+      shippingAddress: dealerAddress,
+      paymentStatus: PaymentStatus.paid,
+      paymentMethod: 'razorpay_test',
+      razorpayPaymentId: 'pay_DlR002Wb4hGjkL',
+      orderStatus: OrderStatus.delivered,
+      createdAt: DateTime.now().subtract(const Duration(days: 12)),
+      estimatedDelivery: DateTime.now().subtract(const Duration(days: 7)),
     ),
   ];
 

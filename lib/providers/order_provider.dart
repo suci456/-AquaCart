@@ -18,7 +18,7 @@ class OrderProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   List<OrderModel> getOrdersForUser(String userId) {
-    return _orders.where((o) => o.userId == userId || userId == 'usr-customer-1').toList();
+    return _orders.where((o) => o.userId == userId).toList();
   }
 
   OrderModel? getOrderById(String orderId) {
@@ -105,6 +105,9 @@ class OrderProvider extends ChangeNotifier {
         orderNumber: current.orderNumber,
         userId: current.userId,
         userRole: current.userRole,
+        dealerId: current.dealerId,
+        dealerCompanyName: current.dealerCompanyName,
+        wholesaleTier: current.wholesaleTier,
         items: current.items,
         subtotal: current.subtotal,
         discount: current.discount,

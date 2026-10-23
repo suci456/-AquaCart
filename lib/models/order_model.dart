@@ -48,8 +48,16 @@ class OrderItem {
 class OrderModel {
   final String id;
   final String orderNumber;
-  final String userId;
+  final String userId; // Always the auth UID of whoever placed the order
   final UserRole userRole;
+
+  // ── Dealer-specific fields (null for customer orders) ───────────────────
+  /// Same as userId when placed by a dealer — stored redundantly for
+  /// indexed Firestore queries on the `orders` collection.
+  final String? dealerId;
+  final String? dealerCompanyName;
+  final String? wholesaleTier;
+
   final List<OrderItem> items;
   final double subtotal;
   final double discount;
@@ -69,6 +77,9 @@ class OrderModel {
     required this.orderNumber,
     required this.userId,
     required this.userRole,
+    this.dealerId,
+    this.dealerCompanyName,
+    this.wholesaleTier,
     required this.items,
     required this.subtotal,
     this.discount = 0.0,
@@ -84,12 +95,21 @@ class OrderModel {
     this.estimatedDelivery,
   });
 
+  bool get isWholesaleOrder => userRole == UserRole.dealer && dealerId != null;
+
   factory OrderModel.fromMap(Map<String, dynamic> map) {
     return OrderModel(
       id: map['id'] ?? '',
       orderNumber: map['orderNumber'] ?? '',
       userId: map['userId'] ?? '',
-      userRole: map['userRole'] == 'dealer' ? UserRole.dealer : UserRole.customer,
+      userRole: map['userRole'] == 'dealer'
+          ? UserRole.dealer
+          : map['userRole'] == 'admin'
+              ? UserRole.admin
+              : UserRole.customer,
+      dealerId: map['dealerId'],
+      dealerCompanyName: map['dealerCompanyName'],
+      wholesaleTier: map['wholesaleTier'],
       items: (map['items'] as List<dynamic>?)
               ?.map((item) => OrderItem.fromMap(Map<String, dynamic>.from(item)))
               .toList() ??
@@ -121,6 +141,9 @@ class OrderModel {
       'orderNumber': orderNumber,
       'userId': userId,
       'userRole': userRole.name,
+      'dealerId': dealerId,
+      'dealerCompanyName': dealerCompanyName,
+      'wholesaleTier': wholesaleTier,
       'items': items.map((i) => i.toMap()).toList(),
       'subtotal': subtotal,
       'discount': discount,

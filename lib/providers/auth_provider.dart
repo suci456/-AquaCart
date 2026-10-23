@@ -20,6 +20,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isDealer => user?.isDealer ?? false;
   bool get isAdmin => user?.isAdmin ?? false;
 
+  /// True only when the dealer's KYC has been explicitly approved by Admin.
+  /// Pending and rejected dealers return false.
+  bool get isApprovedDealer {
+    if (!isDealer) return false;
+    return user?.dealerProfile?.status == 'approved';
+  }
+
+  String get dealerStatus => user?.dealerProfile?.status ?? 'pending';
+
   // Initialize session from SharedPreferences on app startup
   Future<void> initializeAuth() async {
     _isLoading = true;
@@ -143,6 +152,12 @@ class AuthProvider extends ChangeNotifier {
   // Instant role switch for evaluator review
   void switchRole(UserRole role) {
     _authService.switchRole(role);
+    notifyListeners();
+  }
+
+  /// Switch to a dealer persona by KYC status (approved / pending / rejected)
+  void switchToDealer({String status = 'approved'}) {
+    _authService.switchToDealer(status: status);
     notifyListeners();
   }
 

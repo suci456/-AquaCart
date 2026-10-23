@@ -2,7 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // =========================================================================
+    // Helper Functions
+    // =========================================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -17,77 +20,149 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.role == 'admin' || 
+        request.auth.token.role == 'admin' ||
         getUserData().role == 'admin'
       );
     }
 
+    // A dealer is "approved" only when Admin has explicitly set
+    // dealerProfile.status == 'approved' in their user document.
+    // This mirrors the server-side check in OrderService.validateOrder.
     function isApprovedDealer() {
-      return isAuthenticated() && (
+      return isAuthenticated() &&
         getUserData().role == 'dealer' &&
-        getUserData().dealerProfile.status == 'approved'
-      );
+        getUserData().dealerProfile.status == 'approved';
     }
 
+    function isPendingOrRejectedDealer() {
+      return isAuthenticated() &&
+        getUserData().role == 'dealer' &&
+        getUserData().dealerProfile.status != 'approved';
+    }
+
+    // =========================================================================
     // Users Collection
+    // =========================================================================
     match /users/{userId} {
+      // Any authenticated user may read user profiles (needed for dealer
+      // dashboard and admin panel lookups).
       allow read: if isAuthenticated();
-      // On creation: NEVER allow self-assigned Admin registration. Role must be 'customer' or 'dealer'.
-      allow create: if isAuthenticated() && request.auth.uid == userId &&
-                    request.resource.data.role in ['customer', 'dealer'] &&
-                    request.resource.data.role != 'admin';
-      // On update: Admins can change roles; users can update profile info but CANNOT change their own role.
+
+      // On creation: Admin role is STRICTLY forbidden via self-registration.
+      // Role must be 'customer' or 'dealer' only.
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == userId &&
+                       request.resource.data.role in ['customer', 'dealer'] &&
+                       request.resource.data.role != 'admin';
+
+      // On update:
+      //   - Admins may change any field, including role and dealerProfile.status.
+      //   - Users may update their own profile info but CANNOT self-elevate role.
       allow update: if isAdmin() || (
-        isOwner(userId) && 
+        isOwner(userId) &&
         request.resource.data.role == resource.data.role
       );
+
       allow delete: if isAdmin();
     }
 
+    // =========================================================================
     // Products Collection
+    // =========================================================================
     match /products/{productId} {
-      // Anyone can browse products (public read)
+      // Public read — anyone can browse the catalog (including guests).
       allow read: if true;
-      // Only Admin can create, modify, or delete products
+
+      // Only Admin can create, modify, or delete products.
       allow write: if isAdmin();
     }
 
+    // =========================================================================
     // Orders Collection
+    // =========================================================================
     match /orders/{orderId} {
-      // User can read their own orders; Admin can read all orders
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      // Authenticated users can create orders
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Admin can update order fulfillment status, customer can cancel if still pending
-      allow update: if isAdmin() || (isOwner(resource.data.userId) && resource.data.orderStatus == 'placed');
+      // Read: users see only their own orders; Admin sees all.
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Create rules:
+      //   (a) Common: authenticated user may only create orders for themselves.
+      //   (b) Dealer orders: additionally require approved dealer status.
+      //       A pending or rejected dealer is BLOCKED from creating any order.
+      //   (c) The userId field in the new document MUST match the auth UID
+      //       (prevents a dealer from placing orders on behalf of another user).
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       (
+                         // Customer / Admin placing a retail order
+                         getUserData().role != 'dealer' ||
+                         // Approved dealer placing a wholesale order
+                         isApprovedDealer()
+                       );
+
+      // Update:
+      //   - Admin can update any order (status changes, dispatch, etc.).
+      //   - The owning user can cancel their own order only while it is still
+      //     in 'placed' status.
+      allow update: if isAdmin() || (
+        isOwner(resource.data.userId) &&
+        resource.data.orderStatus == 'placed'
+      );
+
       allow delete: if isAdmin();
     }
 
+    // =========================================================================
     // Service Requests Collection
+    // =========================================================================
     match /service_requests/{requestId} {
-      // User can read their own requests; Admin can read all
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      // Customers & Dealers can submit requests
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Admin can assign technicians and update service progress
+      // Users see only their own requests; Admin sees all.
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Customers & approved Dealers can submit service requests.
+      // Pending/rejected dealers cannot book services either.
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       (
+                         getUserData().role != 'dealer' ||
+                         isApprovedDealer()
+                       );
+
+      // Admin assigns technicians; the service owner can update their own request.
       allow update: if isAdmin() || isOwner(resource.data.userId);
       allow delete: if isAdmin();
     }
 
+    // =========================================================================
     // Notifications Collection
+    // =========================================================================
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.userId == 'all' || 
+        resource.data.userId == request.auth.uid ||
+        resource.data.userId == 'all' ||
         isAdmin()
       );
+      // Only Admin sends notifications.
       allow write: if isAdmin();
     }
 
-    // Dealer Applications & Profiles
+    // =========================================================================
+    // Dealer Applications Collection
+    // =========================================================================
     match /dealer_applications/{appId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Dealer sees their own application; Admin sees all.
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Any authenticated user can submit a dealer application for themselves.
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // Only Admin can approve, reject, or delete applications.
       allow update, delete: if isAdmin();
     }
   }

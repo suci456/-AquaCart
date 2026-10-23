@@ -179,4 +179,40 @@ class AuthServiceMockData {
     addresses: [MockDataService.defaultAddress],
     createdAt: DateTime.now().subtract(const Duration(days: 120)),
   );
+
+  static final UserModel demoPendingDealer = UserModel(
+    uid: 'usr-dealer-pending',
+    email: 'pending.dealer@example.com',
+    displayName: 'Priya Mehta',
+    phone: '+91 97001 22334',
+    role: UserRole.dealer,
+    dealerProfile: DealerProfile(
+      companyName: 'FreshFlow Water Pvt Ltd',
+      gstNumber: '27AAACF0230R1ZP',
+      tradeLicense: 'TL-MH-2024-0019',
+      status: 'pending',
+      wholesaleTier: 'Silver Partner',
+      creditLimit: 0.0,
+    ),
+    addresses: [MockDataService.dealerAddress],
+    createdAt: DateTime.now().subtract(const Duration(days: 2)),
+  );
+
+  static final UserModel demoRejectedDealer = UserModel(
+    uid: 'usr-dealer-rejected',
+    email: 'rejected.dealer@example.com',
+    displayName: 'Suresh Nair',
+    phone: '+91 94005 77889',
+    role: UserRole.dealer,
+    dealerProfile: DealerProfile(
+      companyName: 'NairWater Distributors',
+      gstNumber: '32AAACN5540R1ZK',
+      tradeLicense: 'TL-KL-2023-0004',
+      status: 'rejected',
+      wholesaleTier: 'Silver Partner',
+      creditLimit: 0.0,
+    ),
+    addresses: [MockDataService.dealerAddress],
+    createdAt: DateTime.now().subtract(const Duration(days: 30)),
+  );
 }

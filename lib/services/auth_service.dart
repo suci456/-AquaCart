@@ -82,11 +82,15 @@ class AuthService {
     if (!_isFirebaseAvailable) {
       await Future.delayed(const Duration(milliseconds: 600));
 
-      // Offline evaluator demo switcher
-      if (trimmedEmail.contains('dealer')) {
-        _currentUser = AuthServiceMockData.demoDealer;
-      } else if (trimmedEmail.contains('admin')) {
+      // Offline evaluator demo switcher — keyword routing
+      if (trimmedEmail.contains('admin')) {
         _currentUser = AuthServiceMockData.demoAdmin;
+      } else if (trimmedEmail.contains('pending')) {
+        _currentUser = AuthServiceMockData.demoPendingDealer;
+      } else if (trimmedEmail.contains('rejected')) {
+        _currentUser = AuthServiceMockData.demoRejectedDealer;
+      } else if (trimmedEmail.contains('dealer')) {
+        _currentUser = AuthServiceMockData.demoDealer;
       } else {
         _currentUser = UserModel(
           uid: 'usr-${DateTime.now().millisecondsSinceEpoch}',
@@ -298,6 +302,21 @@ class AuthService {
       case UserRole.admin:
         _currentUser = AuthServiceMockData.demoAdmin;
         break;
+    }
+    _persistSession(_currentUser!);
+  }
+
+  /// Switch to a specific dealer persona by status (for evaluator testing)
+  void switchToDealer({String status = 'approved'}) {
+    switch (status) {
+      case 'pending':
+        _currentUser = AuthServiceMockData.demoPendingDealer;
+        break;
+      case 'rejected':
+        _currentUser = AuthServiceMockData.demoRejectedDealer;
+        break;
+      default:
+        _currentUser = AuthServiceMockData.demoDealer;
     }
     _persistSession(_currentUser!);
   }

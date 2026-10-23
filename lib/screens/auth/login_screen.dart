@@ -53,22 +53,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _selectDemoAccount(UserRole role) {
+  void _selectDemoAccount(UserRole role, {String dealerStatus = 'approved'}) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    auth.switchRole(role);
-    switch (role) {
-      case UserRole.customer:
-        _emailController.text = 'customer@aquacart.in';
-        _passwordController.text = 'password123';
-        break;
-      case UserRole.dealer:
+    if (role == UserRole.dealer) {
+      auth.switchToDealer(status: dealerStatus);
+      if (dealerStatus == 'pending') {
+        _emailController.text = 'dealer-pending@aquacart.in';
+        _passwordController.text = 'dealerPass123';
+      } else if (dealerStatus == 'rejected') {
+        _emailController.text = 'dealer-rejected@aquacart.in';
+        _passwordController.text = 'dealerPass123';
+      } else {
         _emailController.text = 'dealer@aquatechsolutions.com';
         _passwordController.text = 'dealerPass123';
-        break;
-      case UserRole.admin:
-        _emailController.text = 'admin@aquacart.in';
-        _passwordController.text = 'adminPass123';
-        break;
+      }
+    } else {
+      auth.switchRole(role);
+      switch (role) {
+        case UserRole.customer:
+          _emailController.text = 'customer@aquacart.in';
+          _passwordController.text = 'password123';
+          break;
+        case UserRole.admin:
+          _emailController.text = 'admin@aquacart.in';
+          _passwordController.text = 'adminPass123';
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -188,6 +200,43 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
+                      if (auth.isDealer) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text(
+                              'Status: ',
+                              style: TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                            ),
+                            Expanded(
+                              child: _dealerStatusSubChip(
+                                label: 'Approved',
+                                status: 'approved',
+                                isSelected: auth.isApprovedDealer,
+                                activeColor: AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: _dealerStatusSubChip(
+                                label: 'Pending',
+                                status: 'pending',
+                                isSelected: auth.dealerStatus == 'pending',
+                                activeColor: Colors.amber.shade700,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: _dealerStatusSubChip(
+                                label: 'Rejected',
+                                status: 'rejected',
+                                isSelected: auth.dealerStatus == 'rejected',
+                                activeColor: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -343,6 +392,37 @@ class _LoginScreenState extends State<LoginScreen> {
             fontSize: 11,
             fontWeight: FontWeight.w700,
             color: isSelected ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dealerStatusSubChip({
+    required String label,
+    required String status,
+    required bool isSelected,
+    required Color activeColor,
+  }) {
+    return InkWell(
+      onTap: () => _selectDemoAccount(UserRole.dealer, dealerStatus: status),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? activeColor : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),

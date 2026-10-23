@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../customer/cart_screen.dart';
+import 'dealer_approval_pending_screen.dart';
 
 /// Dealer Bulk Order Screen
 ///
@@ -60,6 +61,17 @@ class _DealerBulkOrderScreenState extends State<DealerBulkOrderScreen> {
   }
 
   void _addAllSelected() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (!auth.isApprovedDealer) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Wholesale orders require Admin approval. Access blocked.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final cartProv = Provider.of<CartProvider>(context, listen: false);
     final productProv = Provider.of<ProductProvider>(context, listen: false);
     final filtered = _filteredProducts(productProv.allProducts);
@@ -104,7 +116,11 @@ class _DealerBulkOrderScreenState extends State<DealerBulkOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context);
+    if (!auth.isApprovedDealer) {
+      return const DealerApprovalPendingScreen();
+    }
+
     final productProv = Provider.of<ProductProvider>(context);
     final cartProv = Provider.of<CartProvider>(context);
     final allProducts = productProv.allProducts;
