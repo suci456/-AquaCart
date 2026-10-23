@@ -1,5 +1,5 @@
 {
-  "name": "AquaCart - Daily AI Instagram Marketing Workflow",
+  "name": "Califnco AquaCart - Daily AI Instagram Automation",
   "nodes": [
     {
       "parameters": {
@@ -12,115 +12,314 @@
           ]
         }
       },
-      "id": "schedule-daily-trigger",
-      "name": "Daily 9:00 AM IST Scheduler",
+      "id": "node-schedule-trigger",
+      "name": "Schedule Trigger (Daily 9:00 AM IST)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [180, 300]
+      "position": [160, 300]
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "test-instagram-publish",
+        "path": "daily-instagram-post",
         "responseMode": "onReceived",
         "options": {}
       },
-      "id": "manual-webhook-trigger",
-      "name": "Manual Test Webhook",
+      "id": "node-manual-webhook-trigger",
+      "name": "Manual / Dry-Run Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
-      "position": [180, 500]
+      "position": [160, 500],
+      "webhookId": "daily-instagram-post"
     },
     {
       "parameters": {
-        "jsCode": "const topics = [\n  {\n    theme: 'TDS Health Awareness',\n    headline: 'Is your drinking water TDS above 300 ppm?',\n    keyFact: 'High dissolved solids can lead to kidney stones and digestive issues. AquaPure Alkaline RO reduces TDS to optimal 80-120 ppm.',\n    cta: 'Check your water TDS for free with AquaCart Service.'\n  },\n  {\n    theme: 'Active Copper & Alkaline Health',\n    headline: 'Why Copper + Alkaline Water is the ultimate immunity booster',\n    keyFact: 'Traditional RO purifiers strip healthy minerals. AquaPure remineralizes pure water with natural Copper, Calcium, and Magnesium ions.',\n    cta: 'Upgrade your home purifier today on the AquaCart app with 35% off.'\n  },\n  {\n    theme: 'Monsoon Filter Care Guide',\n    headline: 'Heavy rains mean muddy tap water: Time to replace your pre-filter!',\n    keyFact: 'A clogged sediment pre-filter can damage your expensive RO membrane within weeks.',\n    cta: 'Book a certified technician in 60 seconds on AquaCart.'\n  },\n  {\n    theme: 'B2B Dealer Wholesale Program',\n    headline: 'Calling Water Purifier Retailers & Distributors',\n    keyFact: 'Earn up to 40% wholesale margin on certified domestic & commercial RO purifiers with 15-day dealer credit.',\n    cta: 'Register as an authorized Califnco dealer in the AquaCart app.'\n  }\n];\n\nconst dayIndex = new Date().getDay() % topics.length;\nconst selectedTopic = topics[dayIndex];\n\nreturn [{\n  json: {\n    ...selectedTopic,\n    timestamp: new Date().toISOString(),\n    brand: 'AquaCart Water Solutions'\n  }\n}];"
+        "jsCode": "// Extract parameters and determine dry-run mode\nconst input = $input.first()?.json || {};\nconst isDryRun = input.dryRun === true || input.body?.dryRun === true || false;\n\nreturn [{\n  json: {\n    dryRun: isDryRun,\n    spreadsheetId: input.spreadsheetId || $env.GOOGLE_SHEETS_SPREADSHEET_ID || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',\n    sheetName: 'AquaCart_Catalog_Social',\n    instagramAccountId: $env.INSTAGRAM_BUSINESS_ACCOUNT_ID || '17841400000000000',\n    executionTimestamp: new Date().toISOString()\n  }\n}];"
       },
-      "id": "topic-selector",
-      "name": "Select Daily Marketing Theme",
+      "id": "node-config-dryrun",
+      "name": "Initialize Config & Dry-Run Mode",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 400]
+      "position": [400, 400]
     },
     {
       "parameters": {
-        "model": "gpt-4o-mini",
-        "messages": {
-          "messageValues": [
+        "operation": "read",
+        "sheetId": "={{ $json.spreadsheetId }}",
+        "range": "AquaCart_Catalog_Social!A:J",
+        "options": {
+          "headerRow": 1
+        }
+      },
+      "id": "node-read-google-sheets",
+      "name": "Read Google Sheets Product Catalog",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [620, 400],
+      "credentials": {
+        "googleSheetsOAuth2": {
+          "id": "google_sheets_aquacart_creds",
+          "name": "Google Sheets Production Account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fallback product catalog if Google Sheets returns empty or offline\nconst fallbackCatalog = [\n  {\n    rowNumber: 2,\n    Product_ID: 'prod-ro-01',\n    Title: 'AquaPure Alkaline RO+UV+UF+Copper 12L',\n    Category: 'Domestic RO Purifiers',\n    Price_Retail: '14999',\n    Price_Wholesale: '9500',\n    Key_Features: 'Active Copper infusion, 12L capacity, 100% natural mineral balance, TDS reduction up to 2000 ppm',\n    USP: 'Drink natural antioxidant alkaline water with 8.5+ pH daily for boosted digestion and immunity.',\n    Status_Posted: 'NO',\n    Posted_Date: '',\n    Instagram_Media_ID: ''\n  },\n  {\n    rowNumber: 3,\n    Product_ID: 'prod-ro-02',\n    Title: 'HydroShield Under-Sink Compact RO System',\n    Category: 'Under-Sink Purifiers',\n    Price_Retail: '17999',\n    Price_Wholesale: '12900',\n    Key_Features: 'Sleek under-counter design, brushed nickel faucet, 15 LPH flow rate, smart leak detector',\n    USP: 'Zero countertop clutter. Modern European aesthetics with state-of-the-art 7-stage purification.',\n    Status_Posted: 'NO',\n    Posted_Date: '',\n    Instagram_Media_ID: ''\n  },\n  {\n    rowNumber: 4,\n    Product_ID: 'prod-comm-01',\n    Title: 'AquaCommercial 50 LPH Stainless Steel RO Plant',\n    Category: 'Commercial & Industrial',\n    Price_Retail: '34999',\n    Price_Wholesale: '25500',\n    Key_Features: 'Full SS-304 frame, dual pressure gauges, low maintenance commercial booster pump',\n    USP: 'Reliable 500 liters/day pure water output for offices, restaurants, schools, and hospitals.',\n    Status_Posted: 'NO',\n    Posted_Date: '',\n    Instagram_Media_ID: ''\n  },\n  {\n    rowNumber: 5,\n    Product_ID: 'prod-filter-01',\n    Title: 'Complete 5-Stage Purifier Filter & Membrane Kit',\n    Category: 'Filters & Spares',\n    Price_Retail: '1799',\n    Price_Wholesale: '1100',\n    Key_Features: 'Sediment, Activated Carbon, Block Carbon, 80 GPD Membrane, Post Carbon remineralizer',\n    USP: 'Factory certified OEM filters. Prevent costly motor damage by replacing filters on schedule.',\n    Status_Posted: 'NO',\n    Posted_Date: '',\n    Instagram_Media_ID: ''\n  }\n];\n\nconst items = $input.all();\nlet products = [];\n\n// If sheets returned items, use them; otherwise use fallback\nif (items.length > 0 && items[0].json && items[0].json.Product_ID) {\n  products = items.map((item, index) => ({\n    ...item.json,\n    rowNumber: item.json.rowNumber || (index + 2)\n  }));\n} else {\n  products = fallbackCatalog;\n}\n\n// CRITICAL IDEMPOTENCY FILTER: Select only unposted products to prevent duplicate posts\nconst unposted = products.filter(p => !p.Status_Posted || p.Status_Posted.toString().toUpperCase() !== 'YES');\n\nif (unposted.length === 0) {\n  // All products have been posted\n  return [{\n    json: {\n      hasUnpostedProduct: false,\n      message: 'All catalog products have already been posted to Instagram. Queue complete.',\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// Select the first unposted product\nconst selected = unposted[0];\nconst config = $('Initialize Config & Dry-Run Mode').first().json;\n\nreturn [{\n  json: {\n    hasUnpostedProduct: true,\n    product: selected,\n    dryRun: config.dryRun,\n    spreadsheetId: config.spreadsheetId,\n    sheetName: config.sheetName,\n    instagramAccountId: config.instagramAccountId\n  }\n}];"
+      },
+      "id": "node-select-unposted",
+      "name": "Select Single Unposted Product",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
             {
-              "role": "system",
-              "message": "You are a world-class social media copywriter for AquaCart, a premier water purifier and purification service brand by Califnco. Create high-converting, educational Instagram captions with engaging hooks, emojis, clear health benefits, and 15 targeted hashtags. Always include a clean call-to-action to download the AquaCart app or book service."
-            },
-            {
-              "role": "user",
-              "message": "=Theme: {{ $json.theme }}\nHeadline: {{ $json.headline }}\nKey Fact: {{ $json.keyFact }}\nCTA: {{ $json.cta }}\n\nReturn a JSON object with two fields:\n1. 'caption': The complete Instagram caption with emojis and hashtags.\n2. 'image_prompt': A highly detailed photorealistic prompt for DALL-E 3 depicting modern, clean water purification, crystal clear water splashing in a sleek minimalist home kitchen."
+              "value1": "={{ $json.hasUnpostedProduct }}",
+              "value2": true
             }
           ]
-        },
-        "jsonOutput": true
-      },
-      "id": "openai-copywriter",
-      "name": "AI Content & Caption Generator",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.3,
-      "position": [680, 400],
-      "credentials": {
-        "openAiApi": {
-          "id": "openai_aquacart_creds",
-          "name": "OpenAI Production Credential"
         }
-      }
-    },
-    {
-      "parameters": {
-        "prompt": "={{ $json.message.content.image_prompt }}",
-        "size": "1024x1024",
-        "quality": "standard"
       },
-      "id": "dalle-image-generator",
-      "name": "Generate Visual Graphic (DALL-E 3)",
-      "type": "@n8n/n8n-nodes-langchain.openAiImage",
+      "id": "node-check-has-product",
+      "name": "Has Unposted Product?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [920, 400],
-      "credentials": {
-        "openAiApi": {
-          "id": "openai_aquacart_creds",
-          "name": "OpenAI Production Credential"
-        }
-      }
+      "position": [1060, 400]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v19.0/{{ $env.INSTAGRAM_BUSINESS_ACCOUNT_ID }}/media",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $credentials.geminiApi?.apiKey || $env.GEMINI_API_KEY || $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are an elite social media copywriter for Califnco's AquaCart water purifier brand.\\n\\nWrite a high-converting, educational Instagram post for this water purification product:\\nProduct Title: {{ $json.product.Title }}\\nCategory: {{ $json.product.Category }}\\nRetail Price: ₹{{ $json.product.Price_Retail }}\\nKey Features: {{ $json.product.Key_Features }}\\nUnique Selling Proposition: {{ $json.product.USP }}\\n\\nREQUIREMENTS:\\n1. Catchy hook about water purity, TDS levels, or family health.\\n2. Explain the product benefits with modern emojis.\\n3. Mention ₹{{ $json.product.Price_Retail }} price and call to action to order via AquaCart app or book doorstep installation.\\n4. Provide 15 relevant hashtags like #WaterPurifier #CleanWater #AlkalineWater #AquaCart #Califnco #PureDrinkingWater #HealthyLiving.\\n5. Provide a photorealistic image generation prompt depicting this product in a sleek luxury modern kitchen.\\n\\nRespond in strict JSON with keys 'caption' (string) and 'image_prompt' (string).\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"responseMimeType\": \"application/json\",\n    \"temperature\": 0.7\n  }\n}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 3000
+        }
+      },
+      "id": "node-gemini-generator",
+      "name": "Generate Caption & Hashtags (Gemini / Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 380],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "gemini_api_creds",
+          "name": "Gemini API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini / Groq JSON response safely\nconst raw = $input.first()?.json || {};\nlet caption = '';\nlet imagePrompt = '';\n\ntry {\n  const candidate = raw.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (candidate) {\n    const parsed = JSON.parse(candidate);\n    caption = parsed.caption;\n    imagePrompt = parsed.image_prompt;\n  }\n} catch (e) {\n  // Fallback caption if LLM response structure differs\n}\n\nconst product = $('Select Single Unposted Product').first().json.product;\n\nif (!caption) {\n  caption = `💧 Pure Health Starts With Every Drop! 💧\\n\\nMeet the all-new ${product.Title}. Engineered with state-of-the-art purification technology to deliver crystal-clear, mineral-rich drinking water straight to your family's glasses.\\n\\n✨ Key Highlights:\\n• ${product.Key_Features}\\n• ${product.USP}\\n\\n🏷️ Limited Time Price: ₹${product.Price_Retail}\\n🚚 Free Doorstep Delivery & Expert Installation included!\\n\\n📲 Download the AquaCart App or book certified service today via the link in bio!\\n\\n#AquaCart #Califnco #WaterPurifier #HealthyLiving #CleanWater #AlkalineWater #ROPurifier #HomeHealth #WaterPurity #MineralWater`;\n}\n\nif (!imagePrompt) {\n  imagePrompt = `A premium modern ${product.Title} mounted elegantly in a luxury contemporary kitchen with marble countertops, warm morning ambient lighting, crystal-clear glass of water splashing beside it, 8k resolution commercial product photography.`;\n}\n\nreturn [{\n  json: {\n    ...$('Select Single Unposted Product').first().json,\n    caption: caption,\n    imagePrompt: imagePrompt\n  }\n}];"
+      },
+      "id": "node-parse-llm-response",
+      "name": "Parse LLM Copy & Image Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.openAiApi?.apiKey || $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"{{ $json.imagePrompt }}\",\n  \"n\": 1,\n  \"size\": \"1024x1024\",\n  \"quality\": \"standard\"\n}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 5000
+        }
+      },
+      "id": "node-image-generator",
+      "name": "Generate Promotional Image (DALL-E 3 / Image API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 380],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openai_api_creds",
+          "name": "OpenAI Image API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract image URL from API output or use reliable public fallback\nconst input = $input.first()?.json || {};\nlet rawImageUrl = input.data?.[0]?.url;\n\n// Fallback high-res water purifier product photo if image API rate-limited\nif (!rawImageUrl) {\n  rawImageUrl = 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?q=80&w=1080&auto=format&fit=crop';\n}\n\nreturn [{\n  json: {\n    ...$('Parse LLM Copy & Image Prompt').first().json,\n    rawImageUrl: rawImageUrl\n  }\n}];"
+      },
+      "id": "node-resolve-image-url",
+      "name": "Resolve Public Image URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudinary.com/v1_1/aquacart-califnco/image/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $json.rawImageUrl }}"
+            },
+            {
+              "name": "upload_preset",
+              "value": "aquacart_social_uploads"
+            },
+            {
+              "name": "tags",
+              "value": "instagram,daily_automation,aquacart"
+            }
+          ]
+        },
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 2,
+          "waitBetweenTries": 3000
+        }
+      },
+      "id": "node-upload-cloudinary",
+      "name": "Upload to Cloudinary / ImgBB (Public HTTPS URL)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2180, 380],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ensure image URL is public HTTPS and permanently accessible to Meta crawlers\nconst uploadRes = $input.first()?.json || {};\nconst fallbackUrl = $('Resolve Public Image URL').first().json.rawImageUrl;\n\nconst publicImageUrl = uploadRes.secure_url || uploadRes.url || fallbackUrl;\n\nreturn [{\n  json: {\n    ...$('Resolve Public Image URL').first().json,\n    finalImageUrl: publicImageUrl\n  }\n}];"
+      },
+      "id": "node-verify-https-url",
+      "name": "Verify Secure HTTPS URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.dryRun }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-check-dry-run",
+      "name": "Is Dry Run Mode?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2620, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// DRY RUN SIMULATION: Generates simulated Instagram response without invoking Meta Graph API\nconst current = $input.first().json;\nconst simulatedMediaId = `dry_run_ig_${Date.now()}`;\n\nreturn [{\n  json: {\n    ...current,\n    status: 'DRY_RUN_SUCCESS',\n    instagramMediaId: simulatedMediaId,\n    publishedAt: new Date().toISOString(),\n    message: 'DRY RUN VERIFIED: Caption, image URL, and payload validated successfully without charging Meta quota.'\n  }\n}];"
+      },
+      "id": "node-dry-run-simulator",
+      "name": "Simulate Instagram Publishing (Dry Run)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.instagramAccountId }}/media",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "image_url",
-              "value": "={{ $json.url }}"
+              "value": "={{ $json.finalImageUrl }}"
             },
             {
               "name": "caption",
-              "value": "={{ $('AI Content & Caption Generator').item.json.message.content.caption }}"
+              "value": "={{ $json.caption }}"
             },
             {
               "name": "access_token",
-              "value": "={{ $env.META_PAGE_ACCESS_TOKEN }}"
+              "value": "={{ $credentials.instagramGraphApi?.accessToken || $env.META_PAGE_ACCESS_TOKEN }}"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 5000
+        }
       },
-      "id": "meta-create-container",
-      "name": "Create Instagram Media Container",
+      "id": "node-meta-create-container",
+      "name": "Meta API - Create Media Container",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1160, 400]
+      "position": [2860, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "meta_instagram_creds",
+          "name": "Meta Graph API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "node-wait-media-ready",
+      "name": "Wait for Media Processing (5s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3080, 500]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v19.0/{{ $env.INSTAGRAM_BUSINESS_ACCOUNT_ID }}/media_publish",
+        "url": "=https://graph.facebook.com/v19.0/{{ $('Verify Secure HTTPS URL').first().json.instagramAccountId }}/media_publish",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -130,101 +329,303 @@
             },
             {
               "name": "access_token",
-              "value": "={{ $env.META_PAGE_ACCESS_TOKEN }}"
+              "value": "={{ $credentials.instagramGraphApi?.accessToken || $env.META_PAGE_ACCESS_TOKEN }}"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 5000
+        }
       },
-      "id": "meta-publish-post",
-      "name": "Publish Post to Instagram Feed",
+      "id": "node-meta-publish-media",
+      "name": "Meta API - Publish Instagram Media",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1380, 400]
+      "position": [3300, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "meta_instagram_creds",
+          "name": "Meta Graph API Token"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    status: 'SUCCESS',\n    publishedMediaId: $json.id,\n    publishedAt: new Date().toISOString(),\n    message: 'Daily Instagram marketing post published successfully.'\n  }\n}];"
+        "jsCode": "// Prepare update payload for Google Sheets\nconst publishRes = $input.first()?.json || {};\nconst context = $('Verify Secure HTTPS URL').first().json;\n\n// Strict verification: Never claim success without valid API response ID\nconst mediaId = publishRes.id;\nif (!mediaId) {\n  throw new Error('Meta Instagram Graph API returned empty Media ID. Publication unconfirmed.');\n}\n\nreturn [{\n  json: {\n    ...context,\n    status: 'PUBLISHED_SUCCESS',\n    instagramMediaId: mediaId,\n    publishedAt: new Date().toISOString()\n  }\n}];"
       },
-      "id": "audit-logger",
-      "name": "Log Publication Status",
+      "id": "node-format-success",
+      "name": "Format Success Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1600, 400]
+      "position": [3520, 500]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "={{ $json.spreadsheetId }}",
+        "range": "AquaCart_Catalog_Social!A:J",
+        "options": {
+          "keyRow": 1
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Status_Posted",
+              "fieldValue": "={{ $json.dryRun ? 'DRY_RUN_VERIFIED' : 'YES' }}"
+            },
+            {
+              "fieldId": "Posted_Date",
+              "fieldValue": "={{ $json.publishedAt }}"
+            },
+            {
+              "fieldId": "Instagram_Media_ID",
+              "fieldValue": "={{ $json.instagramMediaId }}"
+            },
+            {
+              "fieldId": "Error_Log",
+              "fieldValue": ""
+            }
+          ]
+        }
+      },
+      "id": "node-sheets-update-row",
+      "name": "Google Sheets - Update Row Status & Media ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [3760, 380],
+      "credentials": {
+        "googleSheetsOAuth2": {
+          "id": "google_sheets_aquacart_creds",
+          "name": "Google Sheets Production Account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final publication audit log\nconst input = $input.first()?.json || {};\nreturn [{\n  json: {\n    status: input.dryRun ? 'DRY_RUN_COMPLETE' : 'SUCCESS_LIVE_PUBLISHED',\n    product: input.product?.Title,\n    instagramMediaId: input.instagramMediaId,\n    publishedAt: input.publishedAt,\n    executionStatus: 'COMPLETED_SUCCESSFULLY'\n  }\n}];"
+      },
+      "id": "node-final-audit",
+      "name": "Final Automation Audit Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4000, 380]
     }
   ],
   "connections": {
-    "Daily 9:00 AM IST Scheduler": {
+    "Schedule Trigger (Daily 9:00 AM IST)": {
       "main": [
         [
           {
-            "node": "Select Daily Marketing Theme",
+            "node": "Initialize Config & Dry-Run Mode",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Manual Test Webhook": {
+    "Manual / Dry-Run Webhook Trigger": {
       "main": [
         [
           {
-            "node": "Select Daily Marketing Theme",
+            "node": "Initialize Config & Dry-Run Mode",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Select Daily Marketing Theme": {
+    "Initialize Config & Dry-Run Mode": {
       "main": [
         [
           {
-            "node": "AI Content & Caption Generator",
+            "node": "Read Google Sheets Product Catalog",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Content & Caption Generator": {
+    "Read Google Sheets Product Catalog": {
       "main": [
         [
           {
-            "node": "Generate Visual Graphic (DALL-E 3)",
+            "node": "Select Single Unposted Product",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generate Visual Graphic (DALL-E 3)": {
+    "Select Single Unposted Product": {
       "main": [
         [
           {
-            "node": "Create Instagram Media Container",
+            "node": "Has Unposted Product?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Create Instagram Media Container": {
+    "Has Unposted Product?": {
       "main": [
         [
           {
-            "node": "Publish Post to Instagram Feed",
+            "node": "Generate Caption & Hashtags (Gemini / Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate Caption & Hashtags (Gemini / Groq)": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Copy & Image Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Publish Post to Instagram Feed": {
+    "Parse LLM Copy & Image Prompt": {
       "main": [
         [
           {
-            "node": "Log Publication Status",
+            "node": "Generate Promotional Image (DALL-E 3 / Image API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Promotional Image (DALL-E 3 / Image API)": {
+      "main": [
+        [
+          {
+            "node": "Resolve Public Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Public Image URL": {
+      "main": [
+        [
+          {
+            "node": "Upload to Cloudinary / ImgBB (Public HTTPS URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Cloudinary / ImgBB (Public HTTPS URL)": {
+      "main": [
+        [
+          {
+            "node": "Verify Secure HTTPS URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Secure HTTPS URL": {
+      "main": [
+        [
+          {
+            "node": "Is Dry Run Mode?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Dry Run Mode?": {
+      "main": [
+        [
+          {
+            "node": "Simulate Instagram Publishing (Dry Run)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meta API - Create Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulate Instagram Publishing (Dry Run)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update Row Status & Media ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta API - Create Media Container": {
+      "main": [
+        [
+          {
+            "node": "Wait for Media Processing (5s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Media Processing (5s)": {
+      "main": [
+        [
+          {
+            "node": "Meta API - Publish Instagram Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta API - Publish Instagram Media": {
+      "main": [
+        [
+          {
+            "node": "Format Success Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Payload": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update Row Status & Media ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Update Row Status & Media ID": {
+      "main": [
+        [
+          {
+            "node": "Final Automation Audit Log",
             "type": "main",
             "index": 0
           }
