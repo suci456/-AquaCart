@@ -6,6 +6,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/product_image.dart';
 import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
@@ -122,21 +123,11 @@ class CartScreen extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                width: 70,
-                                height: 70,
-                                color: AppColors.background,
-                                child: Image.network(
-                                  item.product.imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (ctx, err, stack) => const Icon(
-                                    Icons.water_drop,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
+                             // Product Thumbnail
+                            ProductImageThumb(
+                              product: item.product,
+                              size: 72,
+                              radius: 10,
                             ),
                             const SizedBox(width: 14),
                             Expanded(

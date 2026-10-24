@@ -5,6 +5,7 @@ class OrderItem {
   final String productId;
   final String title;
   final String imageUrl;
+  final String? localAssetImage;
   final int quantity;
   final double unitPrice;
   final double totalPrice;
@@ -14,17 +15,21 @@ class OrderItem {
     required this.productId,
     required this.title,
     required this.imageUrl,
+    this.localAssetImage,
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
     this.isWholesale = false,
   });
 
+  bool get hasLocalAsset => localAssetImage != null && localAssetImage!.isNotEmpty;
+
   factory OrderItem.fromMap(Map<String, dynamic> map) {
     return OrderItem(
       productId: map['productId'] ?? '',
       title: map['title'] ?? '',
       imageUrl: map['imageUrl'] ?? '',
+      localAssetImage: map['localAssetImage'],
       quantity: map['quantity'] ?? 1,
       unitPrice: (map['unitPrice'] ?? 0.0).toDouble(),
       totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
@@ -37,6 +42,7 @@ class OrderItem {
       'productId': productId,
       'title': title,
       'imageUrl': imageUrl,
+      'localAssetImage': localAssetImage,
       'quantity': quantity,
       'unitPrice': unitPrice,
       'totalPrice': totalPrice,

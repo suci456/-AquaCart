@@ -6,6 +6,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../widgets/product_image.dart';
 import 'customer_home_screen.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
@@ -169,21 +170,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => const Icon(Icons.water_drop, size: 20, color: AppColors.primary),
-                        ),
-                      ),
+                    ProductImageThumb(
+                      imageUrl: item.imageUrl,
+                      localAsset: item.localAssetImage,
+                      size: 42,
+                      radius: 8,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

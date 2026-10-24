@@ -3,6 +3,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/currency_formatter.dart';
 import '../models/product_model.dart';
+import 'product_image.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -55,17 +56,13 @@ class ProductCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Container(
+                    child: SizedBox(
                       height: 140,
                       width: double.infinity,
-                      color: AppColors.background,
-                      child: Image.network(
-                        product.imageUrl,
+                      child: ProductImage(
+                        product: product,
+                        height: 140,
                         fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(
-                          color: AppColors.primary.withOpacity(0.1),
-                          child: const Icon(Icons.water_drop, size: 48, color: AppColors.primary),
-                        ),
                       ),
                     ),
                   ),

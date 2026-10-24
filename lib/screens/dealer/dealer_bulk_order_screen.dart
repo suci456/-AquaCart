@@ -7,6 +7,7 @@ import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../widgets/product_image.dart';
 import '../customer/cart_screen.dart';
 import 'dealer_approval_pending_screen.dart';
 
@@ -436,21 +437,11 @@ class _BulkOrderRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Product image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              product.imageUrl,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 60,
-                height: 60,
-                color: AppColors.surfaceLight,
-                child: const Icon(Icons.water_drop,
-                    color: AppColors.primary, size: 28),
-              ),
-            ),
+          ProductImageThumb(
+            imageUrl: product.imageUrl,
+            localAsset: product.localAssetImage,
+            size: 60,
+            radius: 8,
           ),
           const SizedBox(width: 12),
 

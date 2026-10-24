@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/product_image.dart';
 import 'cart_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -80,15 +81,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             // Product Hero Image
             Container(
-              height: 280,
+              height: 300,
               width: double.infinity,
               color: AppColors.background,
-              child: Image.network(
-                product.imageUrl,
+              child: ProductImage(
+                product: product,
+                height: 300,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, err, stack) => const Center(
-                  child: Icon(Icons.water_drop, size: 80, color: AppColors.primary),
-                ),
               ),
             ),
             Padding(

@@ -162,6 +162,7 @@ class OrderService {
         productId: trustedProduct.id,
         title: trustedProduct.title,
         imageUrl: trustedProduct.imageUrl,
+        localAssetImage: trustedProduct.localAssetImage,
         quantity: item.quantity,
         unitPrice: verifiedUnitPrice,
         totalPrice: lineTotal,

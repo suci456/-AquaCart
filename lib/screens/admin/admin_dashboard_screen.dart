@@ -9,6 +9,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/service_provider.dart';
 import '../../models/order_model.dart';
 import '../../models/service_request_model.dart';
+import '../../widgets/product_image.dart';
 import '../customer/customer_home_screen.dart';
 import '../auth/login_screen.dart';
 
@@ -349,14 +350,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                 ),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        color: AppColors.background,
-                        child: Image.network(p.imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.water_drop)),
-                      ),
+                    ProductImageThumb(
+                      imageUrl: p.imageUrl,
+                      localAsset: p.localAssetImage,
+                      size: 50,
+                      radius: 8,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

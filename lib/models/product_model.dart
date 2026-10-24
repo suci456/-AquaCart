@@ -48,6 +48,7 @@ class ProductModel {
   final int wholesaleMoq;
   final int stockQuantity;
   final String imageUrl;
+  final String? localAssetImage; // Optional: AI-generated local asset path (assets/images/...)
   final double rating;
   final int reviewCount;
   final bool isFeatured;
@@ -65,11 +66,15 @@ class ProductModel {
     this.wholesaleMoq = 5,
     this.stockQuantity = 50,
     required this.imageUrl,
+    this.localAssetImage,
     this.rating = 4.8,
     this.reviewCount = 124,
     this.isFeatured = false,
     required this.specs,
   });
+
+  /// Returns true if this product has an AI-generated local asset image
+  bool get hasLocalAsset => localAssetImage != null && localAssetImage!.isNotEmpty;
 
   // Calculate discount percentage for retail
   int get retailDiscountPercentage {
