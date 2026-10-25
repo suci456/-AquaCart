@@ -1,0 +1,8 @@
+{
+  "name": "aquacart-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix admin_dashboard install && npm --prefix admin_dashboard run build"
+  }
+}
