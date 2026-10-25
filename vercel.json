@@ -1,5 +1,6 @@
 {
-  "outputDirectory": "build/web",
+  "buildCommand": "npm --prefix admin_dashboard install && npm --prefix admin_dashboard run build",
+  "outputDirectory": "admin_dashboard/dist",
   "cleanUrls": true,
   "rewrites": [
     {
