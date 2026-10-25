@@ -143,7 +143,7 @@ class _DealerBulkOrderScreenState extends State<DealerBulkOrderScreen> {
                   color: Colors.white),
             ),
             Text(
-              auth.user.displayName,
+              auth.user?.displayName ?? 'AquaCart Dealer',
               style: const TextStyle(fontSize: 11, color: Colors.white60),
             ),
           ],

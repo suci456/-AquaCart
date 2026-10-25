@@ -31,8 +31,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    _selectedAddress = auth.user.addresses.isNotEmpty
-        ? auth.user.addresses.first
+    _selectedAddress = (auth.user?.addresses.isNotEmpty ?? false)
+        ? auth.user!.addresses.first
         : MockDataService.defaultAddress;
   }
 
@@ -216,12 +216,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const Divider(height: 16),
                   Text(
-                    auth.user.displayName,
+                    auth.user?.displayName ?? 'AquaCart Customer',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    auth.user.phone,
+                    auth.user?.phone ?? '+91 98765 43210',
                     style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 6),

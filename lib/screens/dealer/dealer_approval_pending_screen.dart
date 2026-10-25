@@ -15,7 +15,7 @@ class DealerApprovalPendingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final isRejected = auth.dealerStatus == 'rejected';
-    final profile = auth.user.dealerProfile;
+    final profile = auth.user?.dealerProfile;
     final companyName = profile?.companyName.isNotEmpty == true
         ? profile!.companyName
         : 'Water Solutions Partner';
@@ -245,9 +245,9 @@ class DealerApprovalPendingScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _detailRow('GSTIN Number', gstin),
                   const SizedBox(height: 8),
-                  _detailRow('Registered Email', auth.user.email),
+                  _detailRow('Registered Email', auth.user?.email ?? 'support@aquacart.in'),
                   const SizedBox(height: 8),
-                  _detailRow('Contact Phone', auth.user.phone),
+                  _detailRow('Contact Phone', auth.user?.phone ?? '+91 98765 43210'),
                   const SizedBox(height: 8),
                   _detailRow(
                     'Verification Status',

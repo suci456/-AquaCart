@@ -4,7 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/role_badge.dart';
-import 'customer_home_screen.dart';
+import 'customer/customer_home_screen.dart';
 import 'dealer/dealer_dashboard_screen.dart';
 import 'customer/order_tracking_screen.dart';
 import 'customer/service_booking_screen.dart';
@@ -52,16 +52,16 @@ class ProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.displayName,
+                          user?.displayName ?? 'AquaCart User',
                           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          user.email,
+                          user?.email ?? 'support@aquacart.in',
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 6),
-                        RoleBadge(role: user.role, isCompact: true),
+                        RoleBadge(role: user?.role ?? UserRole.customer, isCompact: true),
                       ],
                     ),
                   ),
@@ -179,15 +179,15 @@ class ProfileScreen extends StatelessWidget {
                   _menuTile(
                     icon: Icons.location_on_outlined,
                     title: 'Saved Installation Addresses',
-                    subtitle: user.addresses.isNotEmpty ? user.addresses.first.city : 'Bengaluru',
+                    subtitle: (user?.addresses.isNotEmpty ?? false) ? user!.addresses.first.city : 'Bengaluru',
                     onTap: () {},
                   ),
-                  if (auth.isDealer && user.dealerProfile != null) ...[
+                  if (auth.isDealer && user?.dealerProfile != null) ...[
                     const Divider(height: 1),
                     _menuTile(
                       icon: Icons.verified_outlined,
                       title: 'Dealer Wholesale Credentials',
-                      subtitle: 'GST: ${user.dealerProfile!.gstNumber} • ${user.dealerProfile!.wholesaleTier}',
+                      subtitle: 'GST: ${user!.dealerProfile!.gstNumber} • ${user.dealerProfile!.wholesaleTier}',
                       onTap: () {},
                     ),
                   ],

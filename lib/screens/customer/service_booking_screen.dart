@@ -43,8 +43,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    _serviceAddress = auth.user.addresses.isNotEmpty
-        ? auth.user.addresses.first
+    _serviceAddress = (auth.user?.addresses.isNotEmpty ?? false)
+        ? auth.user!.addresses.first
         : MockDataService.defaultAddress;
   }
 
@@ -71,11 +71,19 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
     final serviceProv = Provider.of<ServiceProvider>(context, listen: false);
     final notifProv = Provider.of<NotificationProvider>(context, listen: false);
 
+    final currentUser = auth.user;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to book a service')),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(milliseconds: 700));
 
     final newRequest = await serviceProv.bookNewService(
-      user: auth.user,
+      user: currentUser,
       serviceType: _selectedType,
       purifierBrandModel: _modelController.text.trim(),
       issueDescription: _issueController.text.trim(),
@@ -105,7 +113,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen>
   Widget build(BuildContext context) {
     final serviceProv = Provider.of<ServiceProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
-    final myRequests = serviceProv.getRequestsForUser(auth.user.uid);
+    final myRequests = serviceProv.getRequestsForUser(auth.user?.uid ?? '');
 
     return Scaffold(
       backgroundColor: AppColors.background,

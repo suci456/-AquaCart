@@ -137,7 +137,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   onTap: () => _showRoleSwitcherDialog(context),
                   child: Row(
                     children: [
-                      RoleBadge(role: auth.currentRole, isCompact: true),
+                      RoleBadge(role: auth.currentRole ?? UserRole.customer, isCompact: true),
                       const SizedBox(width: 4),
                       const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.textMuted),
                     ],
@@ -241,6 +241,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     CartProvider cartProv,
     AuthProvider auth,
   ) {
+    final currentRole = auth.currentRole ?? UserRole.customer;
+    final roleFilteredProducts = productProv.getFilteredProductsForRole(currentRole);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -418,7 +421,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${AppConstants.categoryLabels[productProv.selectedCategory]} (${productProv.getFilteredProductsForRole(auth.currentRole).length})',
+                '${AppConstants.categoryLabels[productProv.selectedCategory]} (${roleFilteredProducts.length})',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -452,7 +455,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 child: CircularProgressIndicator(),
               ),
             )
-          else if (productProv.getFilteredProductsForRole(auth.currentRole).isEmpty)
+          else if (roleFilteredProducts.isEmpty)
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
@@ -484,7 +487,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: productProv.getFilteredProductsForRole(auth.currentRole).length,
+              itemCount: roleFilteredProducts.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 0.56,
@@ -492,10 +495,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 mainAxisSpacing: 12,
               ),
               itemBuilder: (ctx, index) {
-                final product = productProv.getFilteredProductsForRole(auth.currentRole)[index];
+                final product = roleFilteredProducts[index];
                 return ProductCard(
                   product: product,
-                  userRole: auth.currentRole,
+                  userRole: currentRole,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(

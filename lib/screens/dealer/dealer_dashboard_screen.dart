@@ -58,8 +58,8 @@ class DealerDashboardScreen extends StatelessWidget {
     final cartProv = Provider.of<CartProvider>(context);
     final orderProv = Provider.of<OrderProvider>(context);
 
-    final dealerProfile = auth.user.dealerProfile;
-    final dealerOrders = orderProv.getOrdersForUser(auth.user.uid);
+    final dealerProfile = auth.user?.dealerProfile;
+    final dealerOrders = orderProv.getOrdersForUser(auth.user?.uid ?? '');
 
     return Scaffold(
       backgroundColor: AppColors.background,

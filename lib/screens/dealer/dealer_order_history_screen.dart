@@ -23,7 +23,7 @@ class _DealerOrderHistoryScreenState extends State<DealerOrderHistoryScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.user != null) {
         Provider.of<OrderProvider>(context, listen: false)
-            .loadOrdersForUser(auth.user.uid);
+            .loadOrdersForUser(auth.user!.uid);
       }
     });
   }
@@ -32,13 +32,15 @@ class _DealerOrderHistoryScreenState extends State<DealerOrderHistoryScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final orderProv = Provider.of<OrderProvider>(context);
-    final currentUserId = auth.user.uid;
+    final currentUserId = auth.user?.uid ?? '';
     final dealerOrders = orderProv.getOrdersForUser(currentUserId);
 
     final totalSpent = dealerOrders.fold<double>(
       0.0,
       (sum, ord) => sum + ord.totalAmount,
     );
+
+    final displayName = auth.user?.displayName ?? 'AquaCart Dealer';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -58,7 +60,7 @@ class _DealerOrderHistoryScreenState extends State<DealerOrderHistoryScreen> {
               ),
             ),
             Text(
-              'Account: ${auth.user.displayName} (UID: $currentUserId)',
+              'Account: $displayName (UID: $currentUserId)',
               style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
@@ -510,7 +512,8 @@ class _DealerOrderHistoryScreenState extends State<DealerOrderHistoryScreen> {
         return Colors.blue.shade700;
       case OrderStatus.confirmed:
         return Colors.teal.shade700;
-      case OrderStatus.shipped:
+      case OrderStatus.dispatched:
+      case OrderStatus.outForDelivery:
         return Colors.purple.shade700;
       case OrderStatus.delivered:
         return AppColors.success;

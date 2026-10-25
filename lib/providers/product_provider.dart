@@ -156,6 +156,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  /// Alias for loading / refreshing products
+  Future<void> loadProducts() => fetchProductsFromFirestore();
+
   // Stock Decrementer (called when an order is verified and placed)
   void decrementStock(String productId, int quantity) {
     final index = _products.indexWhere((p) => p.id == productId);
