@@ -26,8 +26,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.califnco.aquacart"
-    compileSdk 34
-    ndkVersion flutter.ndkVersion
+    compileSdk 36
+    ndkVersion "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -46,7 +46,7 @@ android {
         applicationId "com.califnco.aquacart"
         // Firebase Auth & Firestore require minSdk >= 21
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
